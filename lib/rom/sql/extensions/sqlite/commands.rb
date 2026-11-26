@@ -10,15 +10,25 @@ module ROM
           # @api private
           def insert(tuples)
             pks = tuples.map do |tuple|
-              if relation.schema[relation.primary_key].unwrap.type.primitive == Integer
+              if is_integer_pk?
                 relation.insert(tuple)
               else
                 # For non-integer primary keys, SQLite returns `rowid`, so we
                 # have to explicitly return the primary key.
-                relation.dataset.returning(relation.primary_key).insert(tuple)[0][relation.primary_key]
+                returning_pk_dataset.insert(tuple).dig(0, relation.primary_key)
               end
             end
             relation.dataset.where(relation.primary_key => pks).to_a
+          end
+
+          # @api private
+          def returning_pk_dataset
+            relation.dataset.returning(relation.primary_key)
+          end
+
+          # @api private
+          def is_integer_pk?
+            relation.schema[relation.primary_key].unwrap.type.primitive == Integer
           end
         end
       end
